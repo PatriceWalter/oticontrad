@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OticoTrad — Traduction Instantanée</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07101f;--bg2:#0d1b2e;--card:#0f2035;--card2:#13263f;
+  --teal:#00d4aa;--blue:#3b82f6;--red:#ef4444;
+  --text:#e8f0f8;--text2:#7a9ab8;--text3:#4a6a88;
+  --border:rgba(0,212,170,0.12);--glow:rgba(0,212,170,0.18);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 20% 10%,rgba(0,212,170,.06) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 80% 80%,rgba(59,130,246,.05) 0%,transparent 60%);pointer-events:none;z-index:0}
+header{position:relative;z-index:10;padding:18px 28px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);backdrop-filter:blur(10px)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--teal),var(--blue));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 20px var(--glow)}
+.logo-text{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;letter-spacing:-.5px;background:linear-gradient(90deg,#fff 30%,var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:.68rem;color:var(--text2);font-weight:400;letter-spacing:.5px;-webkit-text-fill-color:var(--text2)}
+.header-status{display:flex;align-items:center;gap:8px;font-size:.76rem;color:var(--text2);background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 14px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);transition:all .3s}
+.status-dot.active{background:var(--teal);box-shadow:0 0 8px var(--teal);animation:pulse-dot 1.5s infinite}
+.status-dot.error{background:var(--red);box-shadow:0 0 8px var(--red)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+main{position:relative;z-index:5;max-width:1100px;margin:0 auto;padding:24px 18px 110px}
+.notice{background:linear-gradient(135deg,rgba(0,212,170,.08),rgba(59,130,246,.06));border:1px solid rgba(0,212,170,.2);border-radius:12px;padding:11px 16px;font-size:.79rem;color:var(--text2);margin-bottom:22px;display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.notice span{font-size:1rem;flex-shrink:0;margin-top:1px}
+.notice strong{color:var(--teal)}
+.lang-row{display:flex;align-items:flex-end;gap:10px;margin-bottom:18px}
+.lang-group{flex:1;display:flex;flex-direction:column;gap:6px}
+.lang-label{font-size:.68rem;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3)}
+.lang-select{background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;padding:10px 34px 10px 12px;cursor:pointer;outline:none;width:100%;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2300d4aa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+.lang-select:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,212,170,.12)}
+.lang-select option{background:#0d1b2e}
+.lang-select optgroup{background:#0a1828;color:var(--text3);font-style:normal;font-weight:600;font-size:.75rem;letter-spacing:1px;text-transform:uppercase}
+.detected-badge{display:none;align-items:center;gap:6px;font-size:.72rem;color:var(--teal);background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.25);border-radius:20px;padding:3px 10px;margin-top:5px;width:fit-content}
+.detected-badge.show{display:flex}
+.swap-btn{width:40px;height:40px;border-radius:50%;background:var(--card2);border:1px solid var(--border);color:var(--teal);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all .3s;flex-shrink:0;margin-bottom:1px}
+.swap-btn:hover{background:var(--teal);color:var(--bg);transform:rotate(180deg);border-color:var(--teal)}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:640px){.panels{grid-template-columns:1fr}.lang-row{flex-wrap:wrap}}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;min-height:200px;display:flex;flex-direction:column;transition:border-color .3s,box-shadow .3s}
+.panel.active-panel{border-color:rgba(0,212,170,.4);box-shadow:0 0 28px rgba(0,212,170,.08)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.panel-title{font-size:.7rem;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
+.panel-actions{display:flex;gap:6px;align-items:center}
+.panel-btn{background:none;border:1px solid var(--border);border-radius:7px;color:var(--text2);font-size:.73rem;padding:4px 9px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:4px;font-family:'DM Sans',sans-serif}
+.panel-btn:hover{background:var(--card2);color:var(--text);border-color:var(--text3)}
+.panel-btn.teal{color:var(--teal);border-color:rgba(0,212,170,.3)}
+.panel-btn.teal:hover{background:rgba(0,212,170,.1);border-color:var(--teal)}
+.panel-content{flex:1;padding:15px}
+.transcript-area{width:100%;min-height:140px;background:none;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:.97rem;line-height:1.65;resize:none;font-weight:300}
+.transcript-area::placeholder{color:var(--text3)}
+.translation-text{color:var(--text);font-size:.97rem;line-height:1.7;font-weight:300;min-height:140px;white-space:pre-wrap}
+.loading-dots{display:none;gap:4px;align-items:center;color:var(--text3);font-size:.82rem}
+.loading-dots.show{display:flex}
+.loading-dots span{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:bounce 1.2s infinite}
+.loading-dots span:nth-child(2){animation-delay:.2s}
+.loading-dots span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+.waveform{display:flex;align-items:center;gap:3px;height:22px;opacity:0;transition:opacity .3s}
+.waveform.active{opacity:1}
+.wave-bar{width:3px;border-radius:2px;background:var(--teal);animation:wave 1s ease-in-out infinite;height:4px}
+.wave-bar:nth-child(1){animation-delay:0s}.wave-bar:nth-child(2){animation-delay:.1s}.wave-bar:nth-child(3){animation-delay:.2s}
+.wave-bar:nth-child(4){animation-delay:.3s}.wave-bar:nth-child(5){animation-delay:.2s}.wave-bar:nth-child(6){animation-delay:.1s}
+.wave-bar:nth-child(7){animation-delay:0s}
+@keyframes wave{0%,100%{height:4px}50%{height:20px}}
+.controls{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px}
+.mic-btn{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--blue));border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.5rem;transition:all .3s;position:relative}
+.mic-btn:hover{transform:scale(1.06);box-shadow:0 8px 28px rgba(0,212,170,.3)}
+.mic-btn.listening{background:linear-gradient(135deg,var(--red),#ff6b6b);animation:pulse-mic 1.5s ease-in-out infinite}
+@keyframes pulse-mic{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.25)}50%{box-shadow:0 0 0 18px rgba(239,68,68,0)}}
+.mic-label{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.68rem;color:var(--text3);font-weight:500}
+.ctrl-btn{display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:11px 16px;cursor:pointer;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:1.3rem;transition:all .2s;min-width:66px}
+.ctrl-btn .ctrl-label{font-size:.62rem;color:var(--text3);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.ctrl-btn:hover{background:var(--card2);border-color:var(--text3);color:var(--text)}
+.auto-speak-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:24px;font-size:.81rem;color:var(--text2)}
+.toggle{position:relative;width:42px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-track{position:absolute;inset:0;background:var(--card2);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .3s}
+.toggle-track::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--text3);top:3px;left:3px;transition:all .3s}
+.toggle input:checked+.toggle-track{background:rgba(0,212,170,.2);border-color:var(--teal)}
+.toggle input:checked+.toggle-track::after{left:20px;background:var(--teal)}
+.history-section{margin-top:4px}
+.history-title{font-size:.7rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.clear-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:.7rem;font-family:'DM Sans',sans-serif;padding:2px 8px;border-radius:6px;transition:all .2s;text-transform:uppercase;letter-spacing:.5px}
+.clear-btn:hover{background:rgba(239,68,68,.1);color:var(--red)}
+.history-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.history-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;display:grid;grid-template-columns:1fr 1fr;gap:10px;animation:slide-in .3s ease}
+@keyframes slide-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.history-original{font-size:.83rem;color:var(--text2);border-right:1px solid var(--border);padding-right:10px;line-height:1.5}
+.history-translated{font-size:.83rem;color:var(--text);line-height:1.5}
+.history-meta{grid-column:1/-1;font-size:.67rem;color:var(--text3);display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border)}
+.replay-btn{background:none;border:none;color:var(--teal);cursor:pointer;font-size:.73rem;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px;opacity:.7;transition:opacity .2s}
+.replay-btn:hover{opacity:1}
+.footer{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(7,16,31,.88);backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:9px 20px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:.71rem;color:var(--text3)}
+.footer-badge{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.68rem;display:flex;align-items:center;gap:5px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:30px;max-width:430px;width:92%;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.modal h2{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;margin-bottom:14px;background:linear-gradient(90deg,#fff,var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.modal p{font-size:.86rem;color:var(--text2);line-height:1.6;margin-bottom:11px}
+.modal ul{padding-left:17px;color:var(--text2);font-size:.83rem;line-height:1.85;margin-bottom:18px}
+.modal li{margin-bottom:3px}
+.modal li strong{color:var(--teal)}
+.modal-close{width:100%;padding:12px;background:linear-gradient(135deg,var(--teal),var(--blue));border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:.93rem;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:opacity .2s}
+.modal-close:hover{opacity:.9}
+.toast{position:fixed;bottom:75px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border);border-radius:30px;padding:9px 18px;font-size:.8rem;color:var(--text);z-index:300;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎧</div>
+    <div>
+      <div class="logo-text">OticoTrad</div>
+      <div class="logo-sub">Traduction instantanée multi-langue</div>
+    </div>
+  </div>
+  <div class="header-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Inactif</span>
+  </div>
+</header>
+
+<main>
+  <div class="notice">
+    <span>🦻</span>
+    <div><strong>Oticon Intent</strong> — Couplage BT requis + <strong>sortie audio par défaut</strong> dans Windows. Navigateur : <strong>Chrome</strong> ou <strong>Edge</strong> uniquement.</div>
+  </div>
+
+  <div class="lang-row">
+    <div class="lang-group">
+      <div class="lang-label">🎤 Je parle</div>
+      <select class="lang-select" id="sourceLang">
+        <option value="auto">🌐 Détection automatique</option>
+        <optgroup label="Europe occidentale">
+          <option value="fr-FR">🇫🇷 Français</option>
+          <option value="de-DE">🇩🇪 Deutsch</option>
+          <option value="en-US">🇺🇸 English (US)</option>
+          <option value="en-GB">🇬🇧 English (UK)</option>
+          <option value="es-ES">🇪🇸 Español</option>
+          <option value="it-IT">🇮🇹 Italiano</option>
+          <option value="pt-PT">🇵🇹 Português</option>
+          <option value="pt-BR">🇧🇷 Português (BR)</option>
+          <option value="nl-NL">🇳🇱 Nederlands</option>
+          <option value="ca-ES">Català</option>
+        </optgroup>
+        <optgroup label="Europe du Nord">
+          <option value="sv-SE">🇸🇪 Svenska</option>
+          <option value="nb-NO">🇳🇴 Norsk</option>
+          <option value="da-DK">🇩🇰 Dansk</option>
+          <option value="fi-FI">🇫🇮 Suomi</option>
+        </optgroup>
+        <optgroup label="Europe centrale">
+          <option value="pl-PL">🇵🇱 Polski</option>
+          <option value="cs-CZ">🇨🇿 Čeština</option>
+          <option value="sk-SK">🇸🇰 Slovenčina</option>
+          <option value="hu-HU">🇭🇺 Magyar</option>
+          <option value="ro-RO">🇷🇴 Română</option>
+          <option value="hr-HR">🇭🇷 Hrvatski</option>
+          <option value="sl-SI">🇸🇮 Slovenščina</option>
+        </optgroup>
+        <optgroup label="Europe de l'Est &amp; Balkans">
+          <option value="ru-RU">🇷🇺 Русский</option>
+          <option value="uk-UA">🇺🇦 Українська</option>
+          <option value="bg-BG">🇧🇬 Български</option>
+          <option value="sr-RS">🇷🇸 Srpski</option>
+          <option value="mk-MK">🇲🇰 Македонски</option>
+          <option value="el-GR">🇬🇷 Ελληνικά</option>
+        </optgroup>
+        <optgroup label="Moyen-Orient &amp; Afrique">
+          <option value="tr-TR">🇹🇷 Türkçe</option>
+          <option value="ar-SA">🇸🇦 العربية</option>
+          <option value="he-IL">🇮🇱 עברית</option>
+          <option value="fa-IR">🇮🇷 فارسی</option>
+          <option value="af-ZA">🇿🇦 Afrikaans</option>
+          <option value="sw-KE">🇰🇪 Kiswahili</option>
+        </optgroup>
+        <optgroup label="Asie du Sud">
+          <option value="hi-IN">🇮🇳 हिन्दी</option>
+          <option value="bn-BD">🇧🇩 বাংলা</option>
+          <option value="ur-PK">🇵🇰 اردو</option>
+        </optgroup>
+        <optgroup label="Asie du Sud-Est">
+          <option value="id-ID">🇮🇩 Bahasa Indonesia</option>
+          <option value="ms-MY">🇲🇾 Bahasa Melayu</option>
+          <option value="vi-VN">🇻🇳 Tiếng Việt</option>
+          <option value="th-TH">🇹🇭 ภาษาไทย</option>
+          <option value="tl-PH">🇵🇭 Filipino</option>
+        </optgroup>
+        <optgroup label="Asie de l'Est">
+          <option value="zh-CN">🇨🇳 中文 (简体)</option>
+          <option value="zh-TW">🇹🇼 中文 (繁體)</option>
+          <option value="ja-JP">🇯🇵 日本語</option>
+          <option value="ko-KR">🇰🇷 한국어</option>
+        </optgroup>
+        <optgroup label="Caucase &amp; Baltique">
+          <option value="ka-GE">🇬🇪 ქართული</option>
+          <option value="hy-AM">🇦🇲 Հայերեն</option>
+          <option value="et-EE">🇪🇪 Eesti</option>
+          <option value="lv-LV">🇱🇻 Latviešu</option>
+          <option value="lt-LT">🇱🇹 Lietuvių</option>
+        </optgroup>
+      </select>
+      <div class="detected-badge" id="detectedBadge">
+        <span id="detectedLangName">—</span>
+      </div>
+    </div>
+    <button class="swap-btn" id="swapBtn" title="Inverser les langues">⇄</button>
+    <div class="lang-group">
+      <div class="lang-label">🔊 Traduire en</div>
+      <select class="lang-select" id="targetLang">
+        <optgroup label="Europe occidentale">
+          <option value="fr">🇫🇷 Français</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="en">🇬🇧 English</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="it">🇮🇹 Italiano</option>
+          <option value="pt">🇵🇹 Português</option>
+          <option value="nl">🇳🇱 Nederlands</option>
+          <option value="ca">Català</option>
+        </optgroup>
+        <optgroup label="Europe du Nord">
+          <option value="sv">🇸🇪 Svenska</option>
+          <option value="no">🇳🇴 Norsk</option>
+          <option value="da">🇩🇰 Dansk</option>
+          <option value="fi">🇫🇮 Suomi</option>
+        </optgroup>
+        <optgroup label="Europe centrale">
+          <option value="pl">🇵🇱 Polski</option>
+          <option value="cs">🇨🇿 Čeština</option>
+          <option value="sk">🇸🇰 Slovenčina</option>
+          <option value="hu">🇭🇺 Magyar</option>
+          <option value="ro">🇷🇴 Română</option>
+          <option value="hr">🇭🇷 Hrvatski</option>
+          <option value="sl">🇸🇮 Slovenščina</option>
+        </optgroup>
+        <optgroup label="Europe de l'Est &amp; Balkans">
+          <option value="ru">🇷🇺 Русский</option>
+          <option value="uk">🇺🇦 Українська</option>
+          <option value="bg">🇧🇬 Български</option>
+          <option value="sr">🇷🇸 Srpski</option>
+          <option value="mk">🇲🇰 Македонски</option>
+          <option value="el">🇬🇷 Ελληνικά</option>
+        </optgroup>
+        <optgroup label="Moyen-Orient &amp; Afrique">
+          <option value="tr">🇹🇷 Türkçe</option>
+          <option value="ar">🇸🇦 العربية</option>
+          <option value="he">🇮🇱 עברית</option>
+          <option value="fa">🇮🇷 فارسی</option>
+          <option value="af">🇿🇦 Afrikaans</option>
+          <option value="sw">🇰🇪 Kiswahili</option>
+        </optgroup>
+        <optgroup label="Asie du Sud">
+          <option value="hi">🇮🇳 हिन्दी</option>
+          <option value="bn">🇧🇩 বাংলা</option>
+          <option value="ur">🇵🇰 اردو</option>
+        </optgroup>
+        <optgroup label="Asie du Sud-Est">
+          <option value="id">🇮🇩 Bahasa Indonesia</option>
+          <option value="ms">🇲🇾 Bahasa Melayu</option>
+          <option value="vi">🇻🇳 Tiếng Việt</option>
+          <option value="th">🇹🇭 ภาษาไทย</option>
+          <option value="tl">🇵🇭 Filipino</option>
+        </optgroup>
+        <optgroup label="Asie de l'Est">
+          <option value="zh">🇨🇳 中文 (简体)</option>
+          <option value="zh-TW">🇹🇼 中文 (繁體)</option>
+          <option value="ja">🇯🇵 日本語</option>
+          <option value="ko">🇰🇷 한국어</option>
+        </optgroup>
+        <optgroup label="Caucase &amp; Baltique">
+          <option value="ka">🇬🇪 ქართული</option>
+          <option value="hy">🇦🇲 Հայերեն</option>
+          <option value="et">🇪🇪 Eesti</option>
+          <option value="lv">🇱🇻 Latviešu</option>
+          <option value="lt">🇱🇹 Lietuvių</option>
+        </optgroup>
+      </select>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="panel" id="sourcePanel">
+      <div class="panel-header">
+        <div class="panel-title">Original</div>
+        <div class="panel-actions">
+          <div class="waveform" id="waveform">
+            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+            <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+          <button class="panel-btn" id="clearSourceBtn">✕ Effacer</button>
+        </div>
+      </div>
+      <div class="panel-content">
+        <textarea class="transcript-area" id="sourceText" placeholder="Le texte reconnu apparaîtra ici…&#10;Vous pouvez aussi taper directement."></textarea>
+      </div>
+    </div>
+    <div class="panel" id="targetPanel">
+      <div class="panel-header">
+        <div class="panel-title">Traduction</div>
+        <div class="panel-actions">
+          <div class="loading-dots" id="loadingDots">
+            <span></span><span></span><span></span>
+            <span style="font-size:.73rem;margin-left:4px;color:var(--text3)">Traduction…</span>
+          </div>
+          <button class="panel-btn teal" id="speakBtn">▶ Écouter</button>
+          <button class="panel-btn" id="copyBtn">⎘ Copier</button>
+        </div>
+      </div>
+      <div class="panel-content">
+        <div class="translation-text" id="translationText">
+          <span style="color:var(--text3);font-style:italic;font-size:.88rem">La traduction apparaîtra ici…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="manualTranslateBtn">
+      <span>⇄</span><span class="ctrl-label">Traduire</span>
+    </button>
+    <div style="position:relative">
+      <button class="mic-btn" id="micBtn">🎤</button>
+      <span class="mic-label" id="micLabel">Démarrer</span>
+    </div>
+    <button class="ctrl-btn" id="stopSpeakBtn">
+      <span>⏹</span><span class="ctrl-label">Stopper</span>
+    </button>
+  </div>
+
+  <div class="auto-speak-row">
+    <label class="toggle">
+      <input type="checkbox" id="autoSpeakToggle" checked>
+      <div class="toggle-track"></div>
+    </label>
+    <span>Lecture automatique dans les aides auditives</span>
+  </div>
+
+  <div class="history-section">
+    <div class="history-title">
+      <span>📋 Historique</span>
+      <button class="clear-btn" id="clearHistoryBtn">✕ Tout effacer</button>
+    </div>
+    <div class="history-list" id="historyList">
+      <div style="color:var(--text3);font-size:.8rem;text-align:center;padding:18px">L'historique s'affichera ici</div>
+    </div>
+  </div>
+</main>
+
+<div class="footer">
+  <div class="footer-badge">🎧 Oticon Intent</div>
+  <span>Audio → sortie Bluetooth par défaut</span>
+  <div class="footer-badge">🌐 44 langues · MyMemory API</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>🎧 Configuration initiale</h2>
+    <p>Pour utiliser OticoTrad avec vos <strong style="color:var(--teal)">Oticon Intent</strong> :</p>
+    <ul>
+      <li><strong>Couplage Bluetooth</strong> — Aides auditives couplées à cet appareil</li>
+      <li><strong>Sortie par défaut</strong> — Windows : Réglages → Son → Sortie → Oticon</li>
+      <li><strong>Chrome ou Edge obligatoire</strong> — Pour la reconnaissance vocale</li>
+      <li><strong>Microphone</strong> — Autoriser quand le navigateur le demande</li>
+    </ul>
+    <p style="font-size:.78rem;color:var(--text3)">Mode Auto : détecte la langue automatiquement par analyse du texte. 44 langues disponibles.</p>
+    <button class="modal-close" id="modalCloseBtn">✓ Compris, démarrer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====================================================================
+// DONNÉES
+// ====================================================================
+const LANG_NAMES = {
+  fr:'Français',de:'Deutsch',en:'English',es:'Español',it:'Italiano',
+  pt:'Português',nl:'Nederlands',ca:'Català',sv:'Svenska',no:'Norsk',
+  da:'Dansk',fi:'Suomi',pl:'Polski',cs:'Čeština',sk:'Slovenčina',
+  hu:'Magyar',ro:'Română',hr:'Hrvatski',sl:'Slovenščina',ru:'Русский',
+  uk:'Українська',bg:'Български',sr:'Srpski',mk:'Македонски',el:'Ελληνικά',
+  tr:'Türkçe',ar:'العربية',he:'עברית',fa:'فارسی',af:'Afrikaans',
+  sw:'Kiswahili',hi:'हिन्दी',bn:'বাংলা',ur:'اردو',id:'Bahasa Indonesia',
+  ms:'Bahasa Melayu',vi:'Tiếng Việt',th:'ภาษาไทย',tl:'Filipino',
+  zh:'中文 (简体)','zh-TW':'中文 (繁體)',ja:'日本語',ko:'한국어',
+  ka:'ქართული',hy:'Հայերեն',et:'Eesti',lv:'Latviešu',lt:'Lietuvių'
+};
+
+const BCP_TO_ISO = {
+  'fr-FR':'fr','de-DE':'de','en-US':'en','en-GB':'en',
+  'es-ES':'es','it-IT':'it','pt-PT':'pt','pt-BR':'pt',
+  'nl-NL':'nl','ca-ES':'ca','sv-SE':'sv','nb-NO':'no',
+  'da-DK':'da','fi-FI':'fi','pl-PL':'pl','cs-CZ':'cs',
+  'sk-SK':'sk','hu-HU':'hu','ro-RO':'ro','hr-HR':'hr',
+  'sl-SI':'sl','ru-RU':'ru','uk-UA':'uk','bg-BG':'bg',
+  'sr-RS':'sr','mk-MK':'mk','el-GR':'el','tr-TR':'tr',
+  'ar-SA':'ar','he-IL':'he','fa-IR':'fa','af-ZA':'af',
+  'sw-KE':'sw','hi-IN':'hi','bn-BD':'bn','ur-PK':'ur',
+  'id-ID':'id','ms-MY':'ms','vi-VN':'vi','th-TH':'th',
+  'tl-PH':'tl','zh-CN':'zh','zh-TW':'zh-TW','ja-JP':'ja',
+  'ko-KR':'ko','ka-GE':'ka','hy-AM':'hy','et-EE':'et',
+  'lv-LV':'lv','lt-LT':'lt'
+};
+
+// ====================================================================
+// DÉTECTION DE LANGUE (sans API — Unicode + stopwords)
+// ====================================================================
+function detectLanguage(text) {
+  if (!text || text.trim().length < 3) return null;
+  const t = text.trim();
+  // Alphabets non-latins — priorité absolue
+  if (/[\u4e00-\u9fff]/.test(t)) return 'zh';
+  if (/[\u3040-\u30ff]/.test(t)) return 'ja';
+  if (/[\uac00-\ud7af]/.test(t)) return 'ko';
+  if (/[\u0600-\u06ff]/.test(t)) {
+    if (/[\u067e\u0686\u06af\u06cc\u0698]/.test(t)) return 'fa';
+    return 'ar';
+  }
+  if (/[\u0900-\u097f]/.test(t)) return 'hi';
+  if (/[\u0980-\u09ff]/.test(t)) return 'bn';
+  if (/[\u0e00-\u0e7f]/.test(t)) return 'th';
+  if (/[\u05d0-\u05ff]/.test(t)) return 'he';
+  if (/[\u10d0-\u10ff]/.test(t)) return 'ka';
+  if (/[\u0531-\u058f]/.test(t)) return 'hy';
+  if (/[\u0400-\u04ff]/.test(t)) {
+    if (/[іїєґ]/.test(t)) return 'uk';
+    if (/[ъ]/.test(t) && !/[ыё]/.test(t)) return 'bg';
+    return 'ru';
+  }
+  if (/[\u0370-\u03ff]/.test(t)) return 'el';
+
+  // Latin — analyse par stopwords
+  const words = t.toLowerCase()
+    .replace(/[^a-záàâäéèêëîïôöùûüœçàáâãäåæèéêëìíîïðñòóôõöøùúûüýşğıżźćńłśęą]/g,' ')
+    .split(/\s+/).filter(w => w.length > 1);
+  if (!words.length) return 'en';
+
+  const SW = {
+    fr:['le','la','les','de','du','des','un','une','et','est','en','je','tu','il','nous','que','qui','avec','dans','pour','sur','par','au','ce','se','ne','pas','plus','tout','bien','mais','son','sa','ses','sur'],
+    de:['der','die','das','und','ist','ich','ein','eine','mit','von','zu','auf','für','nicht','auch','sich','an','dem','wie','als','so','aber','noch','nur','bei','nach','sie'],
+    en:['the','be','to','of','and','in','that','have','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','or','an','will','my','one','all','would','there','their','what'],
+    es:['el','la','los','las','de','en','que','un','una','es','con','por','para','como','su','al','lo','le','me','si','ya','pero','muy','más','hay','no','se','del','le','mi'],
+    it:['il','la','i','le','di','che','un','una','è','con','per','non','si','mi','ha','ho','sono','ma','lo','ci','li','su','da','tra','agli','nel','dello','della'],
+    pt:['o','a','os','as','de','em','que','um','uma','é','com','por','para','não','se','ao','mais','mas','já','ainda','sobre','entre','do','da','dos','das','nos','nas'],
+    nl:['de','het','een','van','is','in','op','te','dat','zijn','voor','met','niet','ook','er','aan','bij','zo','maar','al','door','over'],
+    pl:['i','w','z','na','do','się','że','to','nie','jak','jest','go','ale','po','już','być','tego','tej','jego','jej','ich','przez','przy','więc'],
+    cs:['a','v','je','to','se','na','že','s','z','jako','ale','pro','při','byl','jsou','nebo','jen','tak','ze','ve','po','není','bude'],
+    sk:['a','v','je','to','sa','na','že','s','z','ako','ale','pre','pri','bol','sú','alebo','len','tak','zo','vo'],
+    hu:['és','a','az','egy','van','nem','is','de','én','te','ő','mi','ti','ők','hogy','ezt','azt','már','csak','volt','el','meg'],
+    ro:['și','în','de','la','că','nu','cu','se','mai','ca','este','din','dar','pe','o','cel','care','prin','după','pentru','sau','când'],
+    hr:['i','u','je','na','se','da','s','za','od','to','ali','ga','ne','su','kao','što','koji','koja','više'],
+    sl:['in','je','v','da','se','na','to','ki','za','z','pa','bi','ne','so','ali','sem','ta','te'],
+    bg:['и','в','на','е','да','с','за','от','се','го','не','но','той','тя','ние','те'],
+    sr:['и','у','је','на','се','да','с','за','од','то','али','га','не','су','као'],
+    mk:['и','во','е','на','да','со','за','од','се','го','не','но','тој','таа'],
+    ru:['и','в','не','на','что','я','с','он','как','это','она','мы','вы','они','но','по','от','так','за','все'],
+    uk:['і','в','не','на','що','я','з','він','як','це','вона','ми','ви','вони','але','по','від','так','за'],
+    tr:['ve','bir','bu','da','de','ile','için','var','ben','sen','o','biz','siz','onlar','daha','çok','ne','ama','gibi','olan','ki'],
+    sv:['och','i','att','en','ett','är','på','av','med','för','till','den','det','de','som','inte','om','men','vi','du'],
+    no:['og','i','at','en','et','er','på','av','med','for','til','den','det','de','som','ikke','om','men','vi','du'],
+    da:['og','i','at','en','et','er','på','af','med','for','til','den','det','de','som','ikke','om','men','vi','du'],
+    fi:['ja','on','se','ei','hän','tai','nyt','kun','joka','että','olla','mutta','myös'],
+    id:['dan','di','yang','ini','itu','dengan','untuk','dari','ke','juga','ada','tidak','sudah','bisa','akan'],
+    ms:['dan','di','yang','ini','itu','dengan','untuk','dari','ke','juga','ada','tidak','sudah','boleh'],
+    vi:['và','của','là','trong','cho','với','một','có','không','được','này','các','khi'],
+    af:['en','die','is','van','in','het','om','te','met','op','vir','aan','dat','nie','ook','of','maar'],
+    sw:['na','ya','wa','la','ni','kwa','za','katika','hii','hiyo','pia','lakini','au','kama'],
+    ca:['i','el','la','els','les','de','que','un','una','és','amb','per','en','no','del','han','però'],
+    et:['ja','on','ei','see','kas','aga','või','ning','kuid','nii','siis'],
+    lv:['un','ir','es','tas','ka','ar','bet','vai','no','lai','nav'],
+    lt:['ir','yra','tai','bet','ar','kaip','jis','ji','mes','su'],
+  };
+
+  const scores = {};
+  for (const [lang, sw] of Object.entries(SW)) {
+    scores[lang] = words.filter(w => sw.includes(w)).length;
+  }
+  const best = Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+  return best[1] === 0 ? 'en' : best[0];
+}
+
+// ====================================================================
+// ÉTAT
+// ====================================================================
+const state = {
+  isListening: false,
+  recognition: null,
+  currentFinalText: '',
+  translateTimer: null,
+  history: [],
+  lastTranslated: '',
+  lastDetectedLang: null
+};
+
+// ====================================================================
+// DOM
+// ====================================================================
+const $ = id => document.getElementById(id);
+const els = {
+  statusDot:$('statusDot'), statusText:$('statusText'),
+  sourceLang:$('sourceLang'), targetLang:$('targetLang'),
+  swapBtn:$('swapBtn'), sourceText:$('sourceText'),
+  translationText:$('translationText'), micBtn:$('micBtn'),
+  micLabel:$('micLabel'), speakBtn:$('speakBtn'),
+  copyBtn:$('copyBtn'), clearSourceBtn:$('clearSourceBtn'),
+  manualTranslateBtn:$('manualTranslateBtn'), stopSpeakBtn:$('stopSpeakBtn'),
+  autoSpeakToggle:$('autoSpeakToggle'), loadingDots:$('loadingDots'),
+  waveform:$('waveform'), historyList:$('historyList'),
+  clearHistoryBtn:$('clearHistoryBtn'), modalOverlay:$('modalOverlay'),
+  modalCloseBtn:$('modalCloseBtn'), sourcePanel:$('sourcePanel'),
+  targetPanel:$('targetPanel'), toast:$('toast'),
+  detectedBadge:$('detectedBadge'), detectedLangName:$('detectedLangName')
+};
+
+// ====================================================================
+// HELPERS
+// ====================================================================
+let toastTimer;
+function showToast(msg, d=2500) {
+  clearTimeout(toastTimer);
+  els.toast.textContent = msg;
+  els.toast.classList.add('show');
+  toastTimer = setTimeout(() => els.toast.classList.remove('show'), d);
+}
+function setStatus(cls, text) {
+  els.statusDot.className = 'status-dot' + (cls ? ' '+cls : '');
+  els.statusText.textContent = text;
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function getSourceIso() {
+  const v = els.sourceLang.value;
+  if (v === 'auto') return state.lastDetectedLang || detectLanguage(els.sourceText.value) || 'fr';
+  return BCP_TO_ISO[v] || v.split('-')[0];
+}
+function getRecognitionLang() {
+  const v = els.sourceLang.value;
+  return v === 'auto' ? (navigator.language || 'fr-FR') : v;
+}
+
+// ====================================================================
+// MODAL
+// ====================================================================
+window.addEventListener('load', () => {
+  els.modalOverlay.classList.add('show');
+  window.speechSynthesis.onvoiceschanged = () => {};
+});
+els.modalCloseBtn.addEventListener('click', () => {
+  els.modalOverlay.classList.remove('show');
+  initRecognition();
+});
+
+// ====================================================================
+// RECONNAISSANCE VOCALE
+// ====================================================================
+function initRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setStatus('error','Non supporté');
+    showToast('❌ Utilisez Chrome ou Edge pour la reconnaissance vocale.',5000);
+    return;
+  }
+  state.recognition = new SR();
+  state.recognition.continuous = true;
+  state.recognition.interimResults = true;
+  state.recognition.maxAlternatives = 1;
+  state.recognition.lang = getRecognitionLang();
+
+  state.recognition.onstart = () => {
+    state.isListening = true;
+    setStatus('active','Écoute en cours…');
+    els.micBtn.classList.add('listening');
+    els.micBtn.textContent = '⏹';
+    els.micLabel.textContent = 'Arrêter';
+    els.waveform.classList.add('active');
+    els.sourcePanel.classList.add('active-panel');
+  };
+  state.recognition.onend = () => {
+    if (state.isListening) { try { state.recognition.start(); } catch(e) {} }
+    else { stopListeningUI(); }
+  };
+  state.recognition.onerror = e => {
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
+    if (e.error === 'not-allowed') {
+      setStatus('error','Micro refusé');
+      showToast('❌ Accès micro refusé. Vérifiez les permissions.',4000);
+      state.isListening = false;
+      stopListeningUI();
+    }
+  };
+  state.recognition.onresult = event => {
+    let interim = '', finalDelta = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalDelta += t;
+      else interim = t;
+    }
+    if (finalDelta) {
+      state.currentFinalText += (state.currentFinalText ? ' ' : '') + finalDelta.trim();
+      els.sourceText.value = state.currentFinalText;
+      handleAutoDetect(state.currentFinalText);
+      scheduleTranslation(state.currentFinalText, false);
+    } else {
+      els.sourceText.value = state.currentFinalText + (state.currentFinalText && interim ? ' ' : '') + interim;
+    }
+  };
+}
+
+function handleAutoDetect(text) {
+  if (els.sourceLang.value !== 'auto') { els.detectedBadge.classList.remove('show'); return; }
+  const detected = detectLanguage(text);
+  if (detected && detected !== state.lastDetectedLang) {
+    state.lastDetectedLang = detected;
+    const name = LANG_NAMES[detected] || detected.toUpperCase();
+    els.detectedLangName.textContent = '🔍 ' + name + ' détecté';
+    els.detectedBadge.classList.add('show');
+  }
+}
+
+function startListening() {
+  if (!state.recognition) initRecognition();
+  state.recognition.lang = getRecognitionLang();
+  state.currentFinalText = els.sourceText.value.trim();
+  state.isListening = true;
+  try { state.recognition.start(); } catch(e) {}
+}
+function stopListening() {
+  state.isListening = false;
+  if (state.recognition) { try { state.recognition.stop(); } catch(e) {} }
+  stopListeningUI();
+}
+function stopListeningUI() {
+  els.micBtn.classList.remove('listening');
+  els.micBtn.textContent = '🎤';
+  els.micLabel.textContent = 'Démarrer';
+  els.waveform.classList.remove('active');
+  els.sourcePanel.classList.remove('active-panel');
+  setStatus('','Inactif');
+}
+els.micBtn.addEventListener('click', () => {
+  if (state.isListening) stopListening(); else startListening();
+});
+
+// ====================================================================
+// TRADUCTION — MyMemory API
+// ====================================================================
+async function translate(text, fromIso, toIso) {
+  if (!text.trim() || fromIso === toIso) return text;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=${fromIso}|${toIso}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.responseStatus !== 200 && data.responseStatus !== '200')
+    throw new Error(data.responseDetails || 'Erreur API');
+  return data.responseData.translatedText;
+}
+
+function scheduleTranslation(text, addToHistory) {
+  clearTimeout(state.translateTimer);
+  state.translateTimer = setTimeout(() => doTranslate(text, addToHistory), 650);
+}
+
+async function doTranslate(text, addToHistory = true) {
+  if (!text || !text.trim()) return;
+  const fromIso = getSourceIso();
+  const toIso = els.targetLang.value;
+  const key = text.trim() + '|' + fromIso + '|' + toIso;
+  if (key === state.lastTranslated) return;
+  state.lastTranslated = key;
+
+  els.loadingDots.classList.add('show');
+  els.targetPanel.classList.add('active-panel');
+  try {
+    const result = await translate(text, fromIso, toIso);
+    if (!result) return;
+    els.translationText.textContent = result;
+    if (els.autoSpeakToggle.checked) speakText(result, toIso);
+    if (addToHistory) addHistoryItem(text.trim(), result, fromIso, toIso);
+  } catch(err) {
+    els.translationText.innerHTML = `<span style="color:var(--red);font-size:.84rem">⚠ ${escHtml(err.message)}</span>`;
+    showToast('⚠ Erreur de traduction.',3000);
+  } finally {
+    els.loadingDots.classList.remove('show');
+    setTimeout(() => els.targetPanel.classList.remove('active-panel'), 1500);
+  }
+}
+
+// ====================================================================
+// SYNTHÈSE VOCALE
+// ====================================================================
+function speakText(text, langCode) {
+  if (!text) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  const voices = window.speechSynthesis.getVoices();
+  const match = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase()))
+    || voices.find(v => v.lang.toLowerCase().startsWith(langCode.split('-')[0].toLowerCase()));
+  if (match) utt.voice = match;
+  utt.lang = langCode;
+  utt.rate = 0.95;
+  utt.volume = 1;
+  window.speechSynthesis.speak(utt);
+}
+
+els.speakBtn.addEventListener('click', () => {
+  const t = els.translationText.textContent;
+  if (!t || t.includes('apparaîtra')) { showToast('Aucune traduction à lire',2000); return; }
+  speakText(t, els.targetLang.value);
+  showToast('▶ Lecture en cours…',1500);
+});
+els.stopSpeakBtn.addEventListener('click', () => {
+  window.speechSynthesis.cancel();
+  showToast('⏹ Lecture arrêtée',1500);
+});
+
+// ====================================================================
+// BOUTONS DIVERS
+// ====================================================================
+els.manualTranslateBtn.addEventListener('click', () => {
+  const text = els.sourceText.value.trim();
+  if (!text) { showToast('Aucun texte à traduire',2000); return; }
+  handleAutoDetect(text);
+  state.lastTranslated = '';
+  doTranslate(text, true);
+});
+
+els.copyBtn.addEventListener('click', async () => {
+  const t = els.translationText.textContent;
+  if (!t || t.includes('apparaîtra')) { showToast('Rien à copier',1500); return; }
+  try { await navigator.clipboard.writeText(t); showToast('✓ Copié',2000); }
+  catch(e) { showToast('⚠ Copie impossible',1500); }
+});
+
+els.clearSourceBtn.addEventListener('click', () => {
+  els.sourceText.value = '';
+  state.currentFinalText = '';
+  state.lastTranslated = '';
+  state.lastDetectedLang = null;
+  els.detectedBadge.classList.remove('show');
+  els.translationText.innerHTML = '<span style="color:var(--text3);font-style:italic;font-size:.88rem">La traduction apparaîtra ici…</span>';
+});
+
+els.swapBtn.addEventListener('click', () => {
+  const srcVal = els.sourceLang.value;
+  if (srcVal === 'auto') { showToast('⚠ Désactivez la détection auto pour inverser',2500); return; }
+  const srcIso = BCP_TO_ISO[srcVal] || srcVal.split('-')[0];
+  const tgtIso = els.targetLang.value;
+  // Trouver option source correspondant à tgtIso
+  const newSrc = Array.from(els.sourceLang.options).find(o => {
+    const iso = BCP_TO_ISO[o.value] || o.value.split('-')[0];
+    return iso === tgtIso;
+  });
+  if (newSrc) els.sourceLang.value = newSrc.value;
+  // Trouver option target correspondant à srcIso
+  const newTgt = Array.from(els.targetLang.options).find(o => o.value === srcIso);
+  if (newTgt) els.targetLang.value = newTgt.value;
+  // Swap textes
+  const tgtText = els.translationText.textContent;
+  if (tgtText && !tgtText.includes('apparaîtra')) {
+    els.sourceText.value = tgtText;
+    state.currentFinalText = tgtText;
+    state.lastTranslated = '';
+  }
+  if (state.recognition) state.recognition.lang = getRecognitionLang();
+  showToast('⇄ Langues inversées',1500);
+});
+
+els.sourceLang.addEventListener('change', () => {
+  state.lastDetectedLang = null;
+  if (els.sourceLang.value !== 'auto') els.detectedBadge.classList.remove('show');
+  if (state.recognition) state.recognition.lang = getRecognitionLang();
+  if (state.isListening) { stopListening(); setTimeout(startListening, 400); }
+});
+
+els.targetLang.addEventListener('change', () => {
+  const t = els.sourceText.value.trim();
+  if (t) { state.lastTranslated = ''; doTranslate(t, false); }
+});
+
+// Saisie manuelle
+let manualTimer;
+els.sourceText.addEventListener('input', () => {
+  clearTimeout(manualTimer);
+  manualTimer = setTimeout(() => {
+    const text = els.sourceText.value.trim();
+    if (!text) return;
+    handleAutoDetect(text);
+    const key = text + '|' + getSourceIso() + '|' + els.targetLang.value;
+    if (key !== state.lastTranslated) doTranslate(text, true);
+  }, 1200);
+});
+
+// ====================================================================
+// HISTORIQUE
+// ====================================================================
+function addHistoryItem(orig, trans, fromIso, toIso) {
+  state.history.unshift({ orig, trans, fromIso, toIso, time: new Date() });
+  if (state.history.length > 50) state.history.pop();
+  renderHistory();
+}
+function renderHistory() {
+  if (!state.history.length) {
+    els.historyList.innerHTML = '<div style="color:var(--text3);font-size:.8rem;text-align:center;padding:18px">L\'historique s\'affichera ici</div>';
+    return;
+  }
+  els.historyList.innerHTML = state.history.slice(0,20).map((item, i) => {
+    const time = item.time.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const fromName = LANG_NAMES[item.fromIso] || item.fromIso.toUpperCase();
+    const toName = LANG_NAMES[item.toIso] || item.toIso.toUpperCase();
+    return `<div class="history-item">
+      <div class="history-original">${escHtml(item.orig)}</div>
+      <div class="history-translated">${escHtml(item.trans)}</div>
+      <div class="history-meta">
+        <span>${fromName} → ${toName} · ${time}</span>
+        <button class="replay-btn" onclick="replayHistory(${i})">▶ Réécouter</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.replayHistory = i => {
+  const item = state.history[i];
+  if (!item) return;
+  speakText(item.trans, item.toIso);
+  showToast('▶ ' + item.trans.slice(0,35) + (item.trans.length>35?'…':''), 2000);
+};
+els.clearHistoryBtn.addEventListener('click', () => {
+  state.history = [];
+  renderHistory();
+  showToast('✓ Historique effacé',1500);
+});
+</script>
+</body>
+</html>
